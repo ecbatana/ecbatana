@@ -5,167 +5,260 @@ use PDO;
 
 class QueryBuilder
 {
-	private $selectAll;
-	private $query = array();
-	private $trace = array();
-	private $select;
-	private $where;
+    private $selectAll;
+    private $query = array();
+    private $trace = array();
+    private $select;
+    private $where;
 
-	public function all()
-	{
-		$this->selectAll = 'SELECT * FROM users';
-		return $this;
-	}
+    public function all()
+    {
+        $this->selectAll = 'SELECT * FROM users';
+        return $this;
+    }
 
-	public function result($table)
-	{
-		switch ($this->trace[0]) {
-			case 'select':
-				$row = '';
-				$table = $table;
-				$cond = '';
-				
-				foreach ($this->query['select'] as $value) {
-					if (count($this->query['select']) == 1) {
-						$row .= $value; 
-					} else {
-						$row .= $value . ',';
-					}
-				}
-				if (strpos($row, ',') > 0) {
-					$row = substr_replace($row, '', -1);
-				}
+    public function result($table)
+    {
+        switch ($this->trace[0]) {
+            case 'select':
+                $column = '';
+                $table = $table;
+                $cond = '';
+                $dbc = $this->getDB();
+                
+                foreach ($this->query['select'] as $value) {
+                    if (count($this->query['select']) == 1) {
+                        $column .= $value; 
+                    } else {
+                        $column .= $value . ',';
+                    }
+                }
+                if (strpos($column, ',') > 0) {
+                    $column = substr_replace($column, '', -1);
+                }
 
-				$query = 'SELECT ' . $row . ' FROM ' . $table;
+                $query = 'SELECT ' . $column . ' FROM ' . $table;
 
-				// CONDITIONS
+                // CONDITIONS
 
-				$explCond = explode(',', $this->trace['cond']);
-				
-				foreach ($explCond as $value) {
-					switch ($value) {
-						case 'where':
-							$query .= ' WHERE';
+                $explCond = explode(',', $this->trace['cond']);
+                
+                foreach ($explCond as $value) {
+                    switch ($value) {
+                        case 'where':
+                            $query .= ' WHERE';
 
-							foreach ($this->query['where'] as $row) {
-								$query .= ' ' . $row;
-							}
-							break;
+                            foreach ($this->query['where'] as $column) {
+                                $query .= ' ' . $column;
+                            }
+                            break;
 
-						case 'andWhere':
-							$query .= ' AND';
+                        case 'andWhere':
+                            $query .= ' AND';
 
-							foreach ($this->query['andWhere'] as $row) {
-								$query .= ' ' . $row;
-							}
-							break;
+                            foreach ($this->query['andWhere'] as $column) {
+                                $query .= ' ' . $column;
+                            }
+                            break;
 
-						case 'orWhere':
-							$query .= ' OR';
+                        case 'orWhere':
+                            $query .= ' OR';
 
-							foreach ($this->query['orWhere'] as $row) {
-								$query .= ' ' . $row;
-							}
-							break;
+                            foreach ($this->query['orWhere'] as $column) {
+                                $query .= ' ' . $column;
+                            }
+                            break;
 
-						case 'order':
-							$query .= ' ORDER BY';
+                        case 'group':
+                            $query .= ' GROUP BY';
 
-							foreach ($this->query['order'] as $row) {
-								$query .= ' ' . $row;
-							}
+                            foreach ($this->query['group'] as $column) {
+                                $query .= ' ' . $column;
+                            }
+                            break;
 
-							break;
+                        case 'order':
+                            $query .= ' ORDER BY';
 
-						case 'limit':
-							$query .= ' LIMIT';
+                            foreach ($this->query['order'] as $column) {
+                                $query .= ' ' . $column;
+                            }
 
-							foreach ($this->query['limit'] as $row) {
-								if (count($this->query['limit']) == 1)
-								{
-									$query .= ' ' . $row . ' ';
-								} else {
-									$query .= ' ' . $row . ','; 
-								}
-							}
-							$query = substr_replace($query, '', -1);
-							break;
-						
-						default:
-							# code...
-							break;
-					}
-				}				
+                            break;
 
-				// echo $query;
-				// print_r($this->query);
-				// print_r($this->trace);
+                        case 'andOrder':
+                            $query .= ' ,';
 
-				$dbc = $this->getDB();
-				$result = $dbc->query($query)->fetchAll(PDO::FETCH_ASSOC);
-				$this->query = '';
-				$this->trace = '';
-				return $result;
+                            foreach ($this->query['andOrder'] as $column) {
+                                $query .= ' ' . $column;
+                            }
 
-				break;
-			
-			default:
-				echo 'ayy';
-				break;
-		}
-	}
+                            break;
 
-	public function limit($start, $length = '')
-	{
-		$this->trace['cond'] .= 'limit,';
+                        case 'limit':
+                            $query .= ' LIMIT';
 
-		if ($length != '') {
-			$this->query['limit'] = array($start, $length);
-		} else {
-			$this->query['limit'] = array($start);
-		}
-		return $this;
-	}
+                            foreach ($this->query['limit'] as $column) {
+                                if (count($this->query['limit']) == 1)
+                                {
+                                    $query .= ' ' . $column . ' ';
+                                } else {
+                                    $query .= ' ' . $column . ','; 
+                                }
+                            }
+                            $query = substr_replace($query, '', -1);
+                            break;
+                        
+                        default:
+                            # code...
+                            break;
+                    }
+                }                
 
-	public function order($row, $action)
-	{
-		$this->trace['cond'] .= 'order,';
+                // echo $query;
+                // print_r($this->query);
+                // print_r($this->trace);
 
-		$this->query['order'] = array($row, $action);
-		return $this;
-	}
+                $result = $dbc->query($query)->fetchAll(PDO::FETCH_ASSOC);
+                $this->query = '';
+                $this->trace = '';
+                return $result;
 
-	public function where($rowname, $conditions = null, $value)
-	{
-		$this->trace['cond'] .= 'where,';
+                break;
+            
+            default:
+                echo 'ayy';
+                break;
+        }
+    }
 
-		$this->query['where'] = array($rowname, '=', '\'' . $value . '\'');
-		return $this;
-	}
+    public function limit($start, $length = '')
+    {
+        $this->trace['cond'] .= 'limit,';
 
-	public function andWhere($rowname, $conditions = null, $value)
-	{
-		$this->trace['cond'] .= 'andWhere,';
+        if ($length != '') {
+            $this->query['limit'] = array($start, $length);
+        } else {
+            $this->query['limit'] = array($start);
+        }
+        return $this;
+    }
 
-		$this->query['andWhere'] = array($rowname, '=', '\'' . $value . '\'');
-		return $this;
-	}
+    public function order($column, $action)
+    {
+        $this->trace['cond'] .= 'order,';
 
-	public function orWhere($rowname, $conditions = null, $value)
-	{
-		$this->trace['cond'] .= 'orWhere,';
+        $this->query['order'] = array($column, $action);
+        return $this;
+    }
 
-		$this->query['orWhere'] = array($rowname, '=', '\'' . $value . '\'');
-		return $this;
-	}
+    public function group($column, $action = null)
+    {
+        if ($action != null || !empty($action))
+        {
+            $this->trace['cond'] .= 'group,';
 
-	public function select()
-	{
-		$this->trace[] = 'select';
-		$this->trace['cond'] = '';
+            $this->query['group'] = array($column, $action);
+            return $this;
+        }
+    }
 
-		$args = func_get_args();
-		$this->query['select'] = $args;
-		return $this;
-	}
+    public function andOrder($column, $action)
+    {
+        $this->trace['cond'] .= 'andOrder,';
+
+        $this->query['andOrder'] = array($column, $action);
+        return $this;
+    }
+
+    public function where($column, $conditions = null, $value)
+    {
+        if ($conditions != null || !empty($conditions))
+        {
+            $this->trace['cond'] .= 'where,';
+
+            $this->query['where'] = array($column, $conditions, '\'' . $value . '\'');
+            return $this;
+        }
+    }
+
+    public function andWhere($column, $conditions = null, $value)
+    {
+        if ($conditions != null || !empty($conditions))
+        {
+            $this->trace['cond'] .= 'andWhere,';
+
+            $this->query['andWhere'] = array($column, $conditions, '\'' . $value . '\'');
+            return $this;
+        }
+    }
+
+    public function orWhere($column, $conditions = null, $value)
+    {
+        if ($conditions != null || !empty($conditions))
+        {
+            $this->trace['cond'] .= 'orWhere,';
+
+            $this->query['orWhere'] = array($column, $conditions, '\'' . $value . '\'');
+            return $this;
+        }
+    }
+
+    public function select()
+    {
+        $this->trace[] = 'select';
+        $this->trace['cond'] = '';
+
+        $args = func_get_args();
+        $this->query['select'] = $args;
+        return $this;
+    }
+
+    public function table($table)
+    {
+        $this->trace[] = 'table';
+        $this->trace['cond'] = '';
+
+        $this->query['table'] = $table;
+        return $this;
+    }
+
+    public function insert($insertData)
+    {
+        $dbc = $this->getDB();
+        $table = $this->query['table'];
+        $query = 'INSERT INTO ' . $table;
+        $column = '';
+        $data = '';
+        $param = '';
+        $execute = array();
+        $count = count($insertData);
+
+        foreach ($insertData as $key => $value) {
+            if ($count > 1)
+            {
+                $column .= $key . ',';
+                $data .= $value . ',';
+                $param .= ':p' . $key . ',';
+                $execute[':p' . $key] = $value; 
+            } else {
+                $column .= $key;
+                $data .= $value;
+                $param .= $key;
+                $execute[':p' . $key] = $value; 
+            }
+        }
+
+        // remove trailing commas
+        if ($count > 1)
+        {
+            $column = ltrim(substr_replace($column, '', -1));
+            $data = ltrim(substr_replace($data, '', -1));
+            $param = ltrim(substr_replace($param, '', -1));
+        }
+
+        $query .= ' (' . $column . ') VALUES' . '(' . $param . ')';
+        $statement = $dbc->prepare($query);
+        $statement->execute($execute);
+    }
 }
