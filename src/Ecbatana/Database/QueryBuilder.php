@@ -1,6 +1,8 @@
 <?php
 namespace Ecbatana\Database;
 
+use PDO;
+
 class QueryBuilder
 {
 	private $selectAll;
@@ -50,6 +52,22 @@ class QueryBuilder
 							}
 							break;
 
+						case 'andWhere':
+							$query .= ' AND';
+
+							foreach ($this->query['andWhere'] as $row) {
+								$query .= ' ' . $row;
+							}
+							break;
+
+						case 'orWhere':
+							$query .= ' OR';
+
+							foreach ($this->query['orWhere'] as $row) {
+								$query .= ' ' . $row;
+							}
+							break;
+
 						case 'order':
 							$query .= ' ORDER BY';
 
@@ -84,7 +102,9 @@ class QueryBuilder
 				// print_r($this->trace);
 
 				$dbc = $this->getDB();
-				$result = $dbc->query($query)->fetchAll(\PDO::FETCH_ASSOC);
+				$result = $dbc->query($query)->fetchAll(PDO::FETCH_ASSOC);
+				$this->query = '';
+				$this->trace = '';
 				return $result;
 
 				break;
@@ -119,7 +139,23 @@ class QueryBuilder
 	{
 		$this->trace['cond'] .= 'where,';
 
-		$this->query['where'] = array($rowname, '=', $value);
+		$this->query['where'] = array($rowname, '=', '\'' . $value . '\'');
+		return $this;
+	}
+
+	public function andWhere($rowname, $conditions = null, $value)
+	{
+		$this->trace['cond'] .= 'andWhere,';
+
+		$this->query['andWhere'] = array($rowname, '=', '\'' . $value . '\'');
+		return $this;
+	}
+
+	public function orWhere($rowname, $conditions = null, $value)
+	{
+		$this->trace['cond'] .= 'orWhere,';
+
+		$this->query['orWhere'] = array($rowname, '=', '\'' . $value . '\'');
 		return $this;
 	}
 

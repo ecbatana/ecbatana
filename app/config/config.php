@@ -35,6 +35,7 @@ return array(
      * upcoming update!
      */
     'database' => array(
+        'fetchmode' => PDO::FETCH_ASSOC,
         'driver'    => 'mysql',
         'host'      => '127.0.0.1',
         'database'  => 'ecbatana',
